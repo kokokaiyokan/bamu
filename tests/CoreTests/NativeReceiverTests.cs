@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -7,6 +8,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using bamu;
 using static bamu.BridgeJson;
 
@@ -264,6 +266,8 @@ internal static class NativeReceiverTests
             using (var r = Request("GET", "/v1/next")) check((int)r.StatusCode == 404, "native handoff endpoint requires POST");
             using (var r = Request("POST", "/v1/check")) check((int)r.StatusCode == 200 && Bool(h.Core.State, "requested"), "native HTTP accepts explicit catalog refresh commands");
             using (var r = Request("POST", "/v1/check", body: "{broken")) check((int)r.StatusCode == 400, "native HTTP rejects invalid JSON bodies");
+            using (var r = Request("POST", "/v1/check", body: "{}" + new string(' ', 4 * 1024 * 1024 - 2)))
+                check((int)r.StatusCode == 200, "native HTTP accepts a complete maximum-size body within the receive deadline");
             using (var oversized = new TcpClient("127.0.0.1", host.Port))
             using (var stream = oversized.GetStream())
             {
@@ -274,6 +278,8 @@ internal static class NativeReceiverTests
             using (var r = Request("POST", "/v1/downloaded")) check((int)r.StatusCode == 404, "native receiver exposes no normal-download upload endpoint");
             using (var r = Request("POST", "/v1/settings", body: "{\"auto_enabled\":true}")) check((int)r.StatusCode == 200 && !Bool(h.Core.State, "auto_enabled"), "native API cannot re-enable the removed automatic-download feature");
         }
+        CheckReceiveDeadline(false, root, check);
+        CheckReceiveDeadline(true, root, check);
         using (var h = new Harness(root))
         {
             var legacyHome = Path.Combine(h.Home, "legacy");
@@ -303,6 +309,63 @@ internal static class NativeReceiverTests
                 var latestKey = ReceiverCredentials.Regenerate(h.Home);
                 check(Status(host, oldKey) == 403 && Status(host, newKey) == 403 && Status(host, latestKey) == 200,
                     "successive rotations revoke all earlier connection keys");
+            }
+        }
+    }
+
+    private static void CheckReceiveDeadline(bool body, string root, Action<bool, string> check)
+    {
+        using (var h = new Harness(root))
+        using (var host = new UnityBridgeHost(h.Core, "test-token", h.Cancellation, 0, headerTimeoutMs: 600, bodyTimeoutMs: 800))
+        using (var sending = new CancellationTokenSource())
+        {
+            h.Catalog(); // Clear requested; an incomplete POST must not execute /v1/check.
+            var clients = new List<TcpClient>();
+            Task writer = null;
+            var elapsed = Stopwatch.StartNew();
+            try
+            {
+                for (var i = 0; i < (body ? 1 : 8); i++)
+                {
+                    var client = new TcpClient("127.0.0.1", host.Port); clients.Add(client);
+                    client.SendTimeout = 1000; client.ReceiveTimeout = 4000;
+                    var initial = body ? "POST /v1/check HTTP/1.1\r\nHost: 127.0.0.1:" + host.Port +
+                        "\r\nAuthorization: Bearer test-token\r\nContent-Length: 100000\r\n\r\n" : "G";
+                    var bytes = System.Text.Encoding.ASCII.GetBytes(initial);
+                    client.GetStream().Write(bytes, 0, bytes.Length);
+                }
+                writer = Task.Run(async () =>
+                {
+                    while (!sending.IsCancellationRequested)
+                    {
+                        foreach (var client in clients)
+                        {
+                            try { client.GetStream().WriteByte((byte)' '); }
+                            catch (Exception ex) when (ex is IOException || ex is SocketException || ex is ObjectDisposedException) { }
+                        }
+                        try { await Task.Delay(50, sending.Token); }
+                        catch (OperationCanceledException) { break; }
+                    }
+                });
+                foreach (var client in clients)
+                {
+                    try { check(client.GetStream().ReadByte() == -1, "incomplete " + (body ? "body" : "header") + " is closed without a response"); }
+                    catch (IOException ex) when (ex.InnerException is SocketException socket && socket.SocketErrorCode == SocketError.ConnectionReset)
+                    { check(true, "expired connection is reset"); }
+                }
+                check(elapsed.ElapsedMilliseconds < 3000, "continuous bytes cannot extend the " + (body ? "body" : "header") + " receive deadline");
+                check(!Bool(h.Core.State, "requested"), "expired request never executes a command");
+                using (var http = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(3) })
+                {
+                    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "test-token");
+                    using (var response = http.GetAsync("http://127.0.0.1:" + host.Port + "/v1/status").GetAwaiter().GetResult())
+                        check((int)response.StatusCode == 200, "receiver serves authenticated requests after expired slots are released");
+                }
+            }
+            finally
+            {
+                sending.Cancel(); writer?.GetAwaiter().GetResult();
+                foreach (var client in clients) client.Dispose();
             }
         }
     }
