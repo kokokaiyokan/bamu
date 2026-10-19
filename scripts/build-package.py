@@ -25,6 +25,9 @@ if not version == core_version == extension_version:
 
 # Bundle only the browser extension. The receiver is C# inside Unity; legacy
 # Python sources remain in the development repository and are never shipped.
+# Keep the copyright and full license with each independently distributed part.
+for destination in (package / 'LICENSE', root / 'browser-extension' / 'LICENSE'):
+    shutil.copyfile(root / 'LICENSE', destination)
 tools = package / 'Tools'
 (package / 'Documentation~').mkdir(exist_ok=True)
 for document in ('booth-sync.md', 'prefab-converter-modules.md'):

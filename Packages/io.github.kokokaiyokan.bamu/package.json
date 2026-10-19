@@ -1,6 +1,7 @@
 {
   "name": "io.github.kokokaiyokan.bamu",
   "version": "0.1.0",
+  "license": "MIT",
   "displayName": "BOOTH Asset Management Utility",
   "description": "Link BOOTH Library Manager products to Unity assets. Unofficial, local-first Editor extension for Windows.",
   "unity": "2022.3",

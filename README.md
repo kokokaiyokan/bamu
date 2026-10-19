@@ -59,3 +59,9 @@ Unityの実DLLを使ったコンパイル確認は別途`python scripts/compile-
 
 変換ツール固有の処理は本体から分離しました。本体は公開インターフェース`IPrefabConverter`と`PrefabConverterRegistry`を提供し、モジュールがなければ変換ボタンを表示しません。prefabの表示・選択・配置・リンクは本体だけで利用できます。
 
+## ライセンス
+
+Copyright (c) 2026 kokokaiyokan。BAMUは[MITライセンス](LICENSE)で公開しています。コピーや再配布時には、著作権表示とライセンス本文を同梱してください。
+
+BOOTHの商品・購入済みアセットや外部ツールには、それぞれの利用条件が適用されます。
+
