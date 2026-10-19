@@ -1,6 +1,7 @@
 import {blmUrl} from './catalog.js';
 import {parseMetadataJson} from './metadata.js';
 const BASE = 'http://127.0.0.1:48763';
+const MIN_SYNC_INTERVAL_MS = 60 * 1000;
 let running = false;
 let parserPromise;
 
@@ -82,10 +83,18 @@ async function tick(force=false) {
   if (running) return;
   running=true;
   try {
-    const {backoffUntil=0} = await chrome.storage.local.get('backoffUntil');
-    if (Date.now()<backoffUntil && !force) return;
+    const {backoffUntil=0,nextSyncAt=0} = await chrome.storage.local.get(['backoffUntil','nextSyncAt']);
+    const waitUntil = Math.max(backoffUntil,nextSyncAt);
+    if (Date.now()<waitUntil) {
+      if (force) await chrome.storage.local.set({lastResult:Date.now()<backoffUntil
+        ? `BOOTHのアクセス制限で待機中です。あと${Math.ceil((waitUntil-Date.now())/1000)}秒後に確認できます。`
+        : `確認は1分に1回までです。あと${Math.ceil((waitUntil-Date.now())/1000)}秒後に確認できます。`});
+      return;
+    }
     let status = await api('/v1/status');
     if (status.transport !== 'blm' || status.runtime !== 'unity') throw new Error('Unity側のBOOTH Asset Management Utilityを更新し、コンパイル完了後にもう一度確認してください。');
+    // Persist before contacting BOOTH so failures and worker restarts cannot bypass the interval.
+    await chrome.storage.local.set({nextSyncAt:Date.now()+MIN_SYNC_INTERVAL_MS});
     if (force || status.requested || Date.now()/1000-status.last_catalog>=status.interval_hours*3600) {
       await catalog();status=await api('/v1/status');
     }

@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEditor;
@@ -49,18 +48,10 @@ namespace bamu
             current?.Dispose(); current = null; next = 0;
             if (starting == null) EnsureStarted();
         }
+        public static string RegenerateConnectionKey() => ReceiverCredentials.Regenerate(Home);
         private static Session Open(string home, string legacyHome, string database, string root, CancellationToken cancellation)
         {
-            Directory.CreateDirectory(home);
-            var connection = Path.Combine(home, "connection.json");
-            BamuMigration.AdoptFile(Path.Combine(legacyHome, "connection.json"), connection, cancellation);
-            var config = File.Exists(connection) ? Map(Parse(File.ReadAllText(connection))) : Obj();
-            var token = Str(config, "token");
-            if (string.IsNullOrEmpty(token))
-            {
-                var bytes = new byte[32]; using (var random = RandomNumberGenerator.Create()) random.GetBytes(bytes);
-                token = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            }
+            var token = ReceiverCredentials.LoadOrCreate(home, legacyHome, cancellation);
             // Existing Python process is shut down through its authenticated API,
             // never by killing a process. In-flight native BLM jobs stay in state.
             using (var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) })
@@ -93,8 +84,8 @@ namespace bamu
                 stopped.Token.ThrowIfCancellationRequested();
                 BamuMigration.ReceiverData(legacyHome, home, stopped.Token);
                 var core = new UnityBridgeCore(home, () => BlmLibrary.Load(database, root), stopped.Token);
-                host = new UnityBridgeHost(core, token, stopped);
-                BridgeJson.Save(connection, Obj("port", 48763, "token", token));
+                // Every request reads the current key, including changes made from another project.
+                host = new UnityBridgeHost(core, () => ReceiverCredentials.ReadToken(home), stopped);
                 stopped.Token.ThrowIfCancellationRequested();
                 return new Session(host, ownership, stopped);
             }

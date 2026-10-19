@@ -1,19 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-async function runWorker({brokenTab=false,transport='blm',runtime='unity',metadata=false,metadataFails=false,jsonMetadata=false,receiverDown=false}={}) {
-  const stored={token:'local-token'},listeners={},calls=[];
+async function runWorker({brokenTab=false,transport='blm',runtime='unity',metadata=false,metadataFails=false,jsonMetadata=false,receiverDown=false,start=true,storage={},boothStatus=200}={}) {
+  const stored={token:'local-token',...storage},listeners={},calls=[];
   const event=name=>({addListener:f=>{listeners[name]=f;}});
   globalThis.chrome={
     storage:{local:{get:async key=>typeof key==='string'?{[key]:stored[key]}:{...stored},
       set:async value=>Object.assign(stored,value)}},
     runtime:{id:'self',onInstalled:event('installed'),onStartup:event('startup'),onMessage:event('message'),
-      sendMessage:async message=>{assert.equal(message.mode,'metadata');return {ok:true,product:{item_id:'123',vrchat_state:'yes'}};}},
+      sendMessage:async message=>message.mode==='metadata'
+        ? {ok:true,product:{item_id:'123',vrchat_state:'yes'}} : {ok:true,files:[],next:null}},
     offscreen:{hasDocument:async()=>true},
     alarms:{create:()=>{},onAlarm:event('alarm')},
     tabs:{create:async options=>{calls.push(['tab',options]);if(brokenTab)throw new Error('blocked');return {id:17};}}
   };
   globalThis.fetch=async(url,options)=>{
+    if(url.startsWith('https://accounts.booth.pm/library')) {
+      calls.push(['library',url]);
+      return {ok:boothStatus===200,status:boothStatus,url,text:async()=>'<html></html>'};
+    }
     if(url==='https://booth.pm/ja/items/123.json') {
       calls.push(['json-metadata']);
       return {ok:jsonMetadata,status:jsonMetadata?200:404,json:async()=>({id:123,name:'Asset',tags:[{name:'ピアス'},{name:'ラムネ対応'}]})};
@@ -33,10 +38,14 @@ async function runWorker({brokenTab=false,transport='blm',runtime='unity',metada
       path==='/v1/next'?{job:{id:'b'.repeat(32),name:'new.zip',item_id:'123',variation_id:'456',file_id:'789'}}:{ok:true};
     return {ok:true,json:async()=>value};
   };
-  await import(`../worker.js?case=${Math.random()}`);
-  listeners.alarm({name:'booth-sync'});
-  for(let i=0;i<50&&!stored.lastResult;i++) await new Promise(r=>setTimeout(r,5));
-  return {calls,stored};
+  const reload=()=>import(`../worker.js?case=${Math.random()}`);
+  await reload();
+  if(start) {
+    listeners.alarm({name:'booth-sync'});
+    for(let i=0;i<50&&!stored.lastResult;i++) await new Promise(r=>setTimeout(r,5));
+  }
+  const sync=()=>new Promise(resolve=>listeners.message({type:'sync'},{id:'self'},resolve));
+  return {calls,stored,sync,reload};
 }
 
 test('dispatch once to official BLM URL without Chrome downloads API',async()=>{
@@ -86,4 +95,51 @@ test('failed metadata lookup does not lose the library or block unrelated jobs',
   const {calls}=await runWorker({metadata:true,metadataFails:true});
   assert.deepEqual(calls.find(c=>c[0]==='/v1/metadata')[1],{products:[{item_id:'123',failed:true}]});
   assert.ok(calls.some(c=>c[0]==='/v1/next'));
+});
+
+test('repeated manual syncs wait one minute, including after a worker restart',async t=>{
+  let now=1_000_000;
+  t.mock.method(Date,'now',()=>now);
+  const {calls,stored,sync,reload}=await runWorker({start:false});
+  await sync();
+  assert.equal(calls.filter(c=>c[0]==='library').length,3);
+  assert.equal(stored.nextSyncAt,now+60_000);
+  const before=calls.length;
+  await Promise.all([sync(),sync(),sync()]);
+  assert.equal(calls.length,before);
+  assert.match(stored.lastResult,/1分に1回/);
+  now+=59_999;
+  await reload();
+  await sync();
+  assert.equal(calls.length,before);
+  now++;
+  await sync();
+  assert.equal(calls.filter(c=>c[0]==='library').length,6);
+});
+
+test('failed BOOTH requests also enforce the one-minute manual sync interval',async t=>{
+  t.mock.method(Date,'now',()=>1_000_000);
+  const {calls,sync}=await runWorker({start:false,boothStatus:503});
+  await sync();
+  assert.equal(calls.filter(c=>c[0]==='library').length,1);
+  const before=calls.length;
+  await sync();
+  assert.equal(calls.length,before);
+});
+
+test('manual sync cannot bypass the thirty-minute BOOTH rate-limit backoff',async t=>{
+  let now=1_000_000;
+  t.mock.method(Date,'now',()=>now);
+  const {calls,stored,sync,reload}=await runWorker({start:false,boothStatus:429});
+  await sync();
+  assert.equal(stored.backoffUntil,now+30*60_000);
+  const before=calls.length;
+  now+=60_000;
+  await reload();
+  await sync();
+  assert.equal(calls.length,before);
+  assert.match(stored.lastResult,/アクセス制限で待機中/);
+  now+=29*60_000;
+  await sync();
+  assert.equal(calls.filter(c=>c[0]==='library').length,2);
 });

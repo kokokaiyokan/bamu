@@ -35,6 +35,7 @@
     <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/NativeBlmFiles.cs" />
     <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/UnityBridgeCore.cs" />
     <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/UnityBridgeHost.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/ReceiverCredentials.cs" />
     <Compile Include="TagDictionaryTests.cs" />
     <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/TagDictionary.cs" />
     <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/ProductTags.cs" />

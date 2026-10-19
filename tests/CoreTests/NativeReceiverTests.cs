@@ -274,5 +274,36 @@ internal static class NativeReceiverTests
             using (var r = Request("POST", "/v1/downloaded")) check((int)r.StatusCode == 404, "native receiver exposes no normal-download upload endpoint");
             using (var r = Request("POST", "/v1/settings", body: "{\"auto_enabled\":true}")) check((int)r.StatusCode == 200 && !Bool(h.Core.State, "auto_enabled"), "native API cannot re-enable the removed automatic-download feature");
         }
+        using (var h = new Harness(root))
+        {
+            var legacyHome = Path.Combine(h.Home, "legacy");
+            var oldKey = ReceiverCredentials.LoadOrCreate(h.Home, legacyHome);
+            check(System.Text.RegularExpressions.Regex.IsMatch(oldKey, "^[A-Za-z0-9_-]{43}$"), "receiver creates a random 256-bit connection key");
+            check(ReceiverCredentials.LoadOrCreate(h.Home, legacyHome) == oldKey, "receiver startup preserves an existing connection key");
+            var stateBefore = System.IO.File.ReadAllBytes(Path.Combine(h.Home, "state.json"));
+            using (var host = new UnityBridgeHost(h.Core, () => ReceiverCredentials.ReadToken(h.Home), h.Cancellation, 0))
+            using (var other = new UnityBridgeHost(h.Core, () => ReceiverCredentials.ReadToken(h.Home), h.Cancellation, 0))
+            using (var client = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(10) })
+            {
+                int Status(UnityBridgeHost receiver, string key)
+                {
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:" + receiver.Port + "/v1/status"))
+                    {
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+                        using (var response = client.SendAsync(request).GetAwaiter().GetResult()) return (int)response.StatusCode;
+                    }
+                }
+                check(Status(host, oldKey) == 200, "receiver accepts original key before rotation");
+                var newKey = ReceiverCredentials.Regenerate(h.Home);
+                check(newKey != oldKey && ReceiverCredentials.ReadToken(h.Home) == newKey, "key regeneration persists a different connection key");
+                check(Status(host, oldKey) == 403 && Status(host, newKey) == 200, "running receiver immediately rejects old key and accepts regenerated key");
+                check(Status(other, oldKey) == 403 && Status(other, newKey) == 200, "independent receiver instance observes shared key rotation without restart");
+                check(ReceiverCredentials.LoadOrCreate(h.Home, legacyHome) == newKey, "receiver restart cannot restore a revoked key");
+                check(System.IO.File.ReadAllBytes(Path.Combine(h.Home, "state.json")).SequenceEqual(stateBefore), "key regeneration preserves catalog and download state");
+                var latestKey = ReceiverCredentials.Regenerate(h.Home);
+                check(Status(host, oldKey) == 403 && Status(host, newKey) == 403 && Status(host, latestKey) == 200,
+                    "successive rotations revoke all earlier connection keys");
+            }
+        }
     }
 }

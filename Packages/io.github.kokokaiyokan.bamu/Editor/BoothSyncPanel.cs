@@ -132,6 +132,18 @@ namespace bamu
             if (GUILayout.Button("接続キーをコピー"))
                 try { GUIUtility.systemCopyBuffer = Connection().token; }
                 catch (Exception ex) { error = ex.Message; }
+            using (new EditorGUI.DisabledScope(busy))
+                if (GUILayout.Button("接続キーを再発行") && EditorUtility.DisplayDialog("接続キーの再発行",
+                    "現在の接続キーを無効にし、新しいキーをコピーします。接続しているすべてのChrome拡張でキーの再登録が必要です。", "再発行", "キャンセル"))
+                {
+                    try
+                    {
+                        GUIUtility.systemCopyBuffer = UnityBridgeReceiver.RegenerateConnectionKey();
+                        error = "";
+                        notice = "接続キーを再発行してコピーしました。Chrome拡張へ貼り付け、「保存して接続」を押してください。";
+                    }
+                    catch (Exception ex) { error = ex.Message; }
+                }
             EditorGUILayout.LabelField("Chrome拡張の設定にキーを貼り付け、「保存して接続」を押します。同じChromeでBOOTHへログインし、BLMも起動してください。", EditorStyles.wordWrappedLabel);
             EditorGUILayout.LabelField("4. 最初の一覧を取得", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("Chrome拡張で「今すぐBOOTHを確認」を押します。Unityから確認を要求する場合は下のボタンを使用できます。商品画像・分類は順次反映します。", EditorStyles.wordWrappedLabel);

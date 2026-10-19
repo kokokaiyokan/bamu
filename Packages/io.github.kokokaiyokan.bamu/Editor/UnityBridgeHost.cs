@@ -18,14 +18,16 @@ namespace bamu
     {
         private readonly TcpListener listener;
         private readonly UnityBridgeCore core;
-        private readonly string token;
+        private readonly Func<string> readToken;
         private readonly CancellationTokenSource stopping;
         private readonly ConcurrentDictionary<TcpClient, byte> clients = new ConcurrentDictionary<TcpClient, byte>();
         private readonly Task accept, observer;
         public int Port { get; }
         public UnityBridgeHost(UnityBridgeCore core, string token, CancellationTokenSource stopping, int port = 48763)
+            : this(core, () => token, stopping, port) { }
+        public UnityBridgeHost(UnityBridgeCore core, Func<string> readToken, CancellationTokenSource stopping, int port = 48763)
         {
-            this.core = core; this.token = token; this.stopping = stopping;
+            this.core = core; this.readToken = readToken; this.stopping = stopping;
             listener = new TcpListener(IPAddress.Loopback, port); listener.Start(8); Port = ((IPEndPoint)listener.LocalEndpoint).Port;
             accept = Task.Run(Accept);
             observer = Task.Run(async () =>
@@ -53,7 +55,7 @@ namespace bamu
         private static bool Origin(string origin) => Regex.IsMatch(origin, "^chrome-extension://[a-p]{32}$");
         private bool Token(string value)
         {
-            var expected = "Bearer " + token; var difference = expected.Length ^ value.Length;
+            var expected = "Bearer " + readToken(); var difference = expected.Length ^ value.Length;
             for (var i = 0; i < expected.Length; i++) difference |= expected[i] ^ (i < value.Length ? value[i] : 0);
             return difference == 0;
         }
