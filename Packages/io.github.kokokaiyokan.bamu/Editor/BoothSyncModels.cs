@@ -14,7 +14,7 @@ namespace bamu
     }
     [Serializable] public sealed class SyncFile { public string key, item_id, file_id, variation_id, name, saved_at, latest_sha256; public bool available; }
     [Serializable] public sealed class SyncJob { public string id, key, state, message; }
-    [Serializable] public sealed class SyncWatch { public string item_id, target_mode = "auto", selection_mode = "auto"; public bool enabled = true, include_new_files; public List<string> file_keys = new List<string>(); }
+    [Serializable] public sealed class SyncWatch { public string item_id, target_mode = "auto", selection_mode = "auto"; public bool enabled = true, include_new_files, hidden; public List<string> file_keys = new List<string>(); }
     [Serializable] public sealed class SyncRevision { public string key, item_id, name, sha256, saved_at, target_path; public List<string> package_hashes; }
     [Serializable] public sealed class SyncStatus
     {

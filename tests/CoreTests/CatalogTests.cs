@@ -34,6 +34,11 @@ internal static class CatalogTests
         local.Add(new Product {key="booth:123",boothId="123",name="Downloaded",directory="D:/BLM/b123"});
         result=UnifiedCatalog.Build(local,linked,remote);
         check(result.Count==4 && result.Single(p=>p.boothId=="123").directory=="D:/BLM/b123","catalog download changes the existing product card instead of adding a new card");
+        remote.watches = new List<SyncWatch> { new SyncWatch {item_id="123",hidden=true}, new SyncWatch {item_id="456",target_mode="exclude"} };
+        check(result.Where(p => !UnifiedCatalog.Hidden(p, remote)).All(p => p.boothId != "123"), "hidden product with multiple files is excluded from the list even when BLM saved and asset linked");
+        check(!UnifiedCatalog.Hidden(result.Single(p => p.boothId == "456"), remote), "old acquisition-only exclusion does not hide a product");
+        check(result.Count == 4 && linked.Count == 2 && local.Count == 2, "hiding leaves catalog BLM and asset link records intact for restoration");
+        check(!UnifiedCatalog.Hidden(result[0], null), "visibility handles missing sync snapshots");
         var snapshot=Path.Combine(root,"artifacts","unified-catalog-snapshot.json");
         if (File.Exists(snapshot))
         {

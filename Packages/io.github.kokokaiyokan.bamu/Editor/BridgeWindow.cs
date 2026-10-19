@@ -22,10 +22,11 @@ namespace bamu
         private bool packageOpen, manualOpen, extraLinksOpen, acquisitionOpen, missingImportOpen;
         [SerializeField] private int detailTab;
         private int sortMode;
-        private bool sortDescending;
+        private bool sortDescending, showHiddenProducts;
         private int pageSize = 50;
         private int page;
-        private int catalogFilter;
+        private int blmFilter, assetLinkFilter;
+        private static readonly string[] PresenceFilterNames = { "－", "あり", "なし" };
         private List<Product> Catalog => UnifiedCatalog.Build(library?.products, ledger?.products, BoothSyncStatusCache.Latest);
         private LinkRole role;
         private Vector2 productScroll, detailScroll;
@@ -171,6 +172,8 @@ namespace bamu
             menu.AddItem(new GUIContent("辞書設定…"), false, TagDictionaryWindow.Open);
             menu.AddSeparator("");
             syncPanel.AddMenuItems(menu);
+            menu.AddItem(new GUIContent("BOOTH/除外した商品も表示"), showHiddenProducts, () =>
+            { showHiddenProducts = !showHiddenProducts; page = 0; productScroll = Vector2.zero; Repaint(); });
             var scanLabel = new GUIContent("アセット/既存アセットを探す（全商品）");
             if (library == null || ImportCoordinator.HasPending || EditorApplication.isCompiling || EditorApplication.isUpdating)
                 menu.AddDisabledItem(scanLabel);
@@ -208,12 +211,11 @@ namespace bamu
         {
             var query = EditorGUILayout.TextField(new GUIContent("商品検索", "タグでも検索できます"), search);
             if (query != search) { search = query; page = 0; }
-            var filter = EditorGUILayout.Popup("表示対象", catalogFilter, new[] { "すべて", "BLM保存済み", "Assetリンク済み" });
-            if (filter != catalogFilter) { catalogFilter = filter; page = 0; productScroll = Vector2.zero; }
+            DrawProductFilters();
             DrawProductListOptions();
             var products = Catalog;
             var linkedKeys = new HashSet<string>(ledger.links.Select(l => l.productKey));
-            var filtered = products.Where(p => (search.Length == 0 || ((p.name ?? "") + " " + p.shop + " " + string.Join(" ", tags?.Get(p.key) ?? new List<string>())).IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0) &&
+            var filtered = products.Where(p => (showHiddenProducts || !UnifiedCatalog.Hidden(p, BoothSyncStatusCache.Latest)) && (search.Length == 0 || ((p.name ?? "") + " " + p.shop + " " + string.Join(" ", tags?.Get(p.key) ?? new List<string>())).IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0) &&
                 MatchesFilter(p, linkedKeys)).ToList();
             filtered = ProductListOrder.Sort(filtered, sortMode, sortDescending);
             var pages = Math.Max(1, (filtered.Count + pageSize - 1) / pageSize);
@@ -231,6 +233,32 @@ namespace bamu
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndScrollView();
             if (library == null) EditorGUILayout.HelpBox("接続設定でBLMのdata.dbを指定してください。既存のリンクは保持されています。", MessageType.Info);
+        }
+        private void DrawProductFilters()
+        {
+            var blm = blmFilter;
+            var asset = assetLinkFilter;
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField("表示対象", GUILayout.Width(60));
+                var all = blm == 0 && asset == 0;
+                if (EditorGUILayout.ToggleLeft("すべて", all, GUILayout.Width(70)) && !all)
+                    blm = asset = 0;
+            }
+            var row = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
+            var blmLabelWidth = EditorStyles.label.CalcSize(new GUIContent("BLM保存")).x + 6;
+            var assetLabelWidth = EditorStyles.label.CalcSize(new GUIContent("Assetリンク")).x + 6;
+            const float gap = 12;
+            var choiceWidth = Mathf.Min(72, (row.width - blmLabelWidth - assetLabelWidth - gap) / 2);
+            var x = row.xMax - blmLabelWidth - assetLabelWidth - choiceWidth * 2 - gap;
+            GUI.Label(new Rect(x, row.y, blmLabelWidth, row.height), "BLM保存"); x += blmLabelWidth;
+            blm = EditorGUI.Popup(new Rect(x, row.y, choiceWidth, row.height), blm, PresenceFilterNames);
+            x += choiceWidth + gap;
+            GUI.Label(new Rect(x, row.y, assetLabelWidth, row.height), "Assetリンク"); x += assetLabelWidth;
+            asset = EditorGUI.Popup(new Rect(x, row.y, choiceWidth, row.height), asset, PresenceFilterNames);
+            if (blm == blmFilter && asset == assetLinkFilter) return;
+            blmFilter = blm; assetLinkFilter = asset;
+            page = 0; productScroll = Vector2.zero;
         }
         private void DrawProductListOptions()
         {
@@ -258,12 +286,10 @@ namespace bamu
         }
         private bool MatchesFilter(Product product, HashSet<string> linkedKeys)
         {
-            switch (catalogFilter)
-            {
-                case 1: return !string.IsNullOrEmpty(product.directory);
-                case 2: return linkedKeys.Contains(product.key);
-                default: return true;
-            }
+            var saved = !string.IsNullOrEmpty(product.directory);
+            var linked = linkedKeys.Contains(product.key);
+            return (blmFilter == 0 || saved == (blmFilter == 1)) &&
+                (assetLinkFilter == 0 || linked == (assetLinkFilter == 1));
         }
         private void DrawSelection()
         {

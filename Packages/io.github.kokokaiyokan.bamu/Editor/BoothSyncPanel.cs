@@ -70,7 +70,12 @@ namespace bamu
                     var queued = JsonUtility.FromJson<SyncBulkResult>(result);
                     notice = queued.queued_products + "商品・" + queued.queued_files + "ファイルを取得待ちに追加しました。";
                 }
-                if (body is SyncWatch watch) savedEdits[watch.item_id] = JsonUtility.ToJson(watch);
+                if (body is SyncWatch watch)
+                {
+                    var json = JsonUtility.ToJson(watch);
+                    savedEdits[watch.item_id] = json;
+                    edits[watch.item_id] = JsonUtility.FromJson<SyncWatch>(json);
+                }
             }
             catch (Exception ex) { error = ex.Message; }
             finally { busy = false; if (success) Refresh(); else repaint(); }
@@ -165,6 +170,14 @@ namespace bamu
                 var classification = remote.vrchat_state == "yes" ? "VRChat" : remote.vrchat_state == "no" ? "VRChat以外" : "確認待ち・不明";
                 EditorGUILayout.LabelField("自動判定: " + classification + (string.IsNullOrEmpty(remote.category) ? "" : " · " + remote.category), EditorStyles.wordWrappedMiniLabel);
                 var edit = Edit(product.boothId);
+                if (edit.hidden)
+                {
+                    EditorGUILayout.HelpBox("この商品は一覧・今後の取得対象から除外されています。", MessageType.Info);
+                    using (new EditorGUI.DisabledScope(busy))
+                        if (GUILayout.Button("一覧・取得対象に戻す"))
+                        { var restored = JsonUtility.FromJson<SyncWatch>(JsonUtility.ToJson(edit)); restored.hidden = false; Post("/v1/watch", restored); }
+                    return;
+                }
                 var mode = edit.target_mode == "include" ? 1 : edit.target_mode == "exclude" ? 2 : 0;
                 mode = EditorGUILayout.Popup("VRChat取得対象", mode, new[] { "BOOTHのタグ・バッジから判定", "対象にする", "対象外にする" });
                 edit.target_mode = new[] { "auto", "include", "exclude" }[mode];
@@ -191,6 +204,14 @@ namespace bamu
                 using (new EditorGUI.DisabledScope(busy))
                     if (GUILayout.Button("この商品の取得設定を保存")) Post("/v1/watch", edit);
                 EditorGUILayout.LabelField("設定の保存だけでは取得しません。上部の一括ダウンロードボタンで未登録商品を取得します。", EditorStyles.wordWrappedMiniLabel);
+                using (new EditorGUI.DisabledScope(busy))
+                    if (GUILayout.Button("一覧・今後の取得対象から除外する"))
+                    {
+                        var excluded = JsonUtility.FromJson<SyncWatch>(JsonUtility.ToJson(edit));
+                        excluded.hidden = true;
+                        Post("/v1/watch", excluded);
+                    }
+                EditorGUILayout.LabelField("商品単位で除外します。「設定」→「BOOTH」→「除外した商品も表示」から元に戻せます。BLM保存物やAssetリンクは保持します。", EditorStyles.wordWrappedMiniLabel);
                 foreach (var job in Status.jobs.Where(j => j.key.StartsWith(product.boothId + ":", StringComparison.Ordinal)).Reverse().Take(4))
                 {
                     EditorGUILayout.LabelField(job.state + " · " + job.message, EditorStyles.wordWrappedMiniLabel);

@@ -49,6 +49,28 @@ internal static class NativeReceiverTests
     }
     public static void Run(Action<bool, string> check, string root)
     {
+        foreach (var stage in new[] { "Queued", "Preparing", "ReadyForBLM", "AwaitingBLM" })
+        using (var h = new Harness(root))
+        {
+            h.Catalog(h.File()); h.Classify(); h.Core.Command("/v1/bulk-missing", Obj());
+            if (stage != "Queued") h.Core.Command("/v1/next", Obj());
+            if (stage == "ReadyForBLM" || stage == "AwaitingBLM") h.Core.Pump();
+            if (stage == "AwaitingBLM") h.Core.Command("/v1/next", Obj());
+            h.Core.Command("/v1/watch", Obj("item_id", "123", "enabled", true, "target_mode", "include", "hidden", true));
+            check(Str(h.Job, "state") == (stage == "AwaitingBLM" ? "AwaitingBLM" : "Cancelled"), "product exclusion cancels undispatched work at " + stage);
+            check(h.Dispatch() == null, "excluded product never dispatches at " + stage);
+            if (stage == "AwaitingBLM")
+            {
+                h.Save();
+                check(Str(h.Job, "state") == "Saved", "exclusion keeps observing files already handed to BLM");
+                continue;
+            }
+            h.Restart(); h.Catalog(h.File("790", "new.zip")); h.Classify();
+            check(Bool(Map(List(h.Core.Status()["watches"]).Single()), "hidden") && !Bool(Map(List(h.Core.Status()["products"]).Single()), "is_target"), "exclusion survives restart and catalog metadata refresh");
+            check(Num(h.Core.Command("/v1/bulk-missing", Obj()), "queued_files") == 0, "exclusion blocks future files even with include and enabled settings");
+            h.Core.Command("/v1/watch", Obj("item_id", "123", "enabled", true, "target_mode", "include", "hidden", false));
+            check(Num(h.Core.Command("/v1/bulk-missing", Obj()), "queued_files") == 1, "restoring excluded product permits explicit bulk download again");
+        }
         var unicode = Map(Parse("{\"text\":\"髪\\n\\u30bf\\u30b0\",\"mtime_ns\":1789999999999999900,\"v\":[true,null,1.25]}"));
         check(Str(unicode, "text") == "髪\nタグ" && Stringify(Parse(Stringify(unicode))) == Stringify(unicode), "native JSON preserves Unicode, escapes and nanosecond integers");
         foreach (var invalid in new[] { "{\"x\":1,\"x\":2}", "[1,]", "01", "true false", "\"bad\\x\"", "1e999" })

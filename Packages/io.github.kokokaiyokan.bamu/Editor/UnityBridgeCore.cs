@@ -59,7 +59,7 @@ namespace bamu
         private void Save() { cancellation.ThrowIfCancellationRequested(); BridgeJson.Save(Path.Combine(home, "state.json"), State); }
         private Dictionary<string, object> Watch(string item) => Watches.TryGetValue(item, out var watch) ? Map(watch) : Obj();
         private Dictionary<string, object> Meta(string item) => Metadata.TryGetValue(item, out var value) ? Map(value) : Obj();
-        private bool Target(string item) { var mode = Str(Watch(item), "target_mode", "auto"); return mode == "include" || mode == "auto" && Str(Meta(item), "vrchat_state") == "yes"; }
+        private bool Target(string item) { var mode = Str(Watch(item), "target_mode", "auto"); return !Bool(Watch(item), "hidden") && (mode == "include" || mode == "auto" && Str(Meta(item), "vrchat_state") == "yes"); }
         private List<string> Recommended(string item)
         {
             var selected = new Dictionary<string, Dictionary<string, object>>();
@@ -163,12 +163,16 @@ namespace bamu
                         foreach (var pair in prepared) Metadata[pair.Key] = pair.Value; break;
                     case "/v1/watch":
                         var watchItem = Id(body, "item_id");
-                        if (!Records(Files.Values).Any(f => Str(f, "item_id") == watchItem)) throw new InvalidDataException("商品一覧を確認してください。");
+                        if (!Watches.ContainsKey(watchItem) && !Records(Files.Values).Any(f => Str(f, "item_id") == watchItem)) throw new InvalidDataException("商品一覧を確認してください。");
                         var keys = List(Value(body, "file_keys", new List<object>())).Select(Convert.ToString).Distinct().ToList();
                         if (keys.Any(k => !Files.ContainsKey(k) || Str(Map(Files[k]), "item_id") != watchItem)) throw new InvalidDataException("他の商品・不明な配布ファイルは指定できません。");
                         var mode = Str(body, "target_mode", "auto"); var selection = Str(body, "selection_mode", "auto");
                         if (!new[] { "auto", "include", "exclude" }.Contains(mode) || !new[] { "auto", "manual" }.Contains(selection)) throw new InvalidDataException("取得対象の設定が不正です。");
-                        Watches[watchItem] = Obj("item_id", watchItem, "enabled", Bool(body, "enabled"), "target_mode", mode, "selection_mode", selection, "file_keys", keys); break;
+                        Watches[watchItem] = Obj("item_id", watchItem, "enabled", Bool(body, "enabled"), "target_mode", mode, "selection_mode", selection, "file_keys", keys, "hidden", Bool(body, "hidden"));
+                        if (Bool(body, "hidden"))
+                            foreach (var job in Records(Jobs).Where(j => Str(j, "key").Split(':')[0] == watchItem && new[] { "Queued", "Retry", "Preparing", "ReadyForBLM" }.Contains(Str(j, "state"))))
+                            { job["state"] = "Cancelled"; job["message"] = "商品を一覧・取得対象から除外しました。"; }
+                        break;
                     case "/v1/bulk-missing": return Bulk();
                     case "/v1/next": return Next();
                     case "/v1/check": State["requested"] = true; break;
@@ -196,7 +200,7 @@ namespace bamu
         private Dictionary<string, object> Job(string id) => Records(Jobs).FirstOrDefault(j => Str(j, "id") == id) ?? throw new InvalidDataException("取得記録がありません。");
         private static Dictionary<string, object> NewJob(Dictionary<string, object> file, string batch) => Obj("id", Guid.NewGuid().ToString("N"), "key", Str(file, "key"), "state", "Queued", "created_at", Utc,
             "attempts", 0, "transport", "blm", "source", "manual_missing", "batch_id", batch, "requested_name", Str(file, "name"));
-        private bool ValidJob(Dictionary<string, object> job) => Str(job, "source") == "manual_missing" && Files.TryGetValue(Str(job, "key"), out var file) && Bool(Map(file), "available") && Str(Map(file), "name") == Str(job, "requested_name");
+        private bool ValidJob(Dictionary<string, object> job) => !Bool(Watch(Str(job, "key").Split(':')[0]), "hidden") && Str(job, "source") == "manual_missing" && Files.TryGetValue(Str(job, "key"), out var file) && Bool(Map(file), "available") && Str(Map(file), "name") == Str(job, "requested_name");
         private Dictionary<string, object> Bulk()
         {
             var registered = new HashSet<string>(library().products.Select(p => p.boothId)); var batch = Guid.NewGuid().ToString("N"); var items = new HashSet<string>(); var count = 0;

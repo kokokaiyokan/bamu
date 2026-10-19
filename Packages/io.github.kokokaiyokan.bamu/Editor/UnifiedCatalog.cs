@@ -41,8 +41,12 @@ namespace bamu
         }
 
         public static SyncProduct Remote(Product product, SyncStatus status) => status?.products?.FirstOrDefault(p => p.item_id == product.boothId);
+        public static bool Hidden(Product product, SyncStatus status) => !string.IsNullOrEmpty(product.boothId) &&
+            status?.watches?.Any(w => w.item_id == product.boothId && w.hidden) == true;
+
         public static string State(Product product, SyncStatus status)
         {
+            if (Hidden(product, status)) return "一覧・取得対象から除外中";
             var remote = Remote(product, status);
             switch (remote?.sync_state)
             {
