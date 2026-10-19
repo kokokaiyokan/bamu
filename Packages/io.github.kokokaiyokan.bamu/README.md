@@ -10,8 +10,6 @@ Package Managerの「Add package from disk...」でこのフォルダの`package
 
 `Window > BOOTH Asset Management Utility`を開いてください。VCCプロジェクトでも同じ手順です。VCCのリポジトリ配信は未対応です。
 
-旧BOOTH Unity BridgeからはパッケージID・フォルダ・データ保存先が変わります。旧データは新保存先にデータがない場合に引き継ぎ、元データを残します。
-
 ## 商品一覧と検索
 
 左側は商品ごとに1カードです。画像、商品名、作者名と、Assetリンク／BLM保存の✓・×を表示します。カード全体をクリックして選択でき、カードへProjectのアセットをドラッグして手動リンクできます。

@@ -24,10 +24,6 @@ Windows / Unity 2022.3 / BOOTH Library Manager 0.5.0（DBスキーマ20261005）
 
 詳細は[利用ガイド](Packages/io.github.kokokaiyokan.bamu/README.md)を参照してください。
 
-## 0.1.0の名称変更
-
-旧BOOTH Unity Bridgeから名称を変更しました。UnityパッケージIDは`io.github.kokokaiyokan.bamu`、名前空間は`bamu`、アセンブリは`bamu.Editor`です。旧データは新保存先にデータがない場合に引き継ぎ、元データを残します。
-
 ## 開発・検証
 
 コアテストには.NET 8とPython 3を使います。Unity・BLMのインストールや購入済みアセットは不要です。毎回、合成のBLMデータベース・商品ファイル・台帳を生成し、`../bamu_development/artifacts/core-test-synthetic-<ID>/`内だけをアプリデータの保存先として使用します。Unity APIはテスト専用の代替実装で、EditorPrefsもメモリ内に保持し、実際のUnityプロジェクトへの切り替えは拒否します。
@@ -54,10 +50,6 @@ Unityの実DLLを使ったコンパイル確認は別途`python scripts/compile-
 | `companion/` | 配布対象外の旧Python実装・過去版検証用 |
 
 配布物・検証データ・テスト出力は、リポジトリの外にある`../bamu_development/artifacts/`へ保存します。各スクリプトは必要な出力フォルダを自動作成します。このフォルダにはローカルの検証データを含むため、公開対象に含めないでください。
-
-## 任意の変換ツール連携（0.1.0）
-
-変換ツール固有の処理は本体から分離しました。本体は公開インターフェース`IPrefabConverter`と`PrefabConverterRegistry`を提供し、モジュールがなければ変換ボタンを表示しません。prefabの表示・選択・配置・リンクは本体だけで利用できます。
 
 ## ライセンス
 

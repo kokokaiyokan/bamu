@@ -2,17 +2,15 @@
 
 BOOTH Asset Management Utilityを導入したUnityを開くと、Unity内の受信を自動開始します。ChromeがBOOTHの商品情報を取得してUnityへ渡し、商品ファイルは引き続き公式のBLM用リンク経由でBLM自身が取得します。
 
-## 最初の接続・旧版からの更新
+## 最初の接続
 
 必要なものはWindows、Unity2022.3、Chrome116以降、BLM0.5.0（DBスキーマ20261005）です。
 
 1. Unityの再コンパイルを待ち、`Window > BOOTH Asset Management Utility` を開きます。
 2. Manager上部の「設定」→「接続設定…」で別ウィンドウを開き、「Chrome（BOOTH）」の受信状態を確認します。
-3. 「初期設定」を展開し、「Chrome拡張のフォルダを開く」で拡張フォルダを確認します。Chromeの `chrome://extensions` から読み込みます。導入済みなら拡張を再読み込みしてください。
-4. 「接続キーをコピー」し、Chrome拡張へ登録します。旧版の接続キーは引き継ぐので、設定済みなら再登録は通常不要です。
+3. 「初期設定」を展開し、「Chrome拡張のフォルダを開く」で拡張フォルダを確認します。Chromeの `chrome://extensions` から読み込みます。
+4. 「接続キーをコピー」し、Chrome拡張へ登録します。
 5. ChromeでBOOTHへログインし、BLMも起動します。Chrome拡張の「今すぐBOOTHを確認」を押すと、Unity側へ約5秒ごとに反映します。
-
-既存の `state.json` をUnity側で読み込み、商品・取得ファイル・選択設定・履歴・未完了ジョブを引き継ぎます。最初の移行時は `state.json.pre-unity.bak` を残します。
 
 ## 起動・終了と複数プロジェクト
 
@@ -44,7 +42,7 @@ Unityを閉じている場合、Chrome拡張は「Unityを開き、コンパイ�
 
 ## 保存先と受信範囲
 
-標準は `%LOCALAPPDATA%/bamu`。旧版で設定した保存先も引き継ぎます。
+標準は `%LOCALAPPDATA%/bamu` です。
 
 - `connection.json`：Chromeとの接続キー。
 - `state.json`：商品情報・対象設定・取得待ち・履歴。更新時に `.bak` を作成します。
