@@ -1,0 +1,8 @@
+{
+  "name": "bamu.Editor",
+  "rootNamespace": "bamu",
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": true
+}

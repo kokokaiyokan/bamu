@@ -1,0 +1,6 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>BOOTH Asset Management Utility</title>
+<style>body{font:14px system-ui;max-width:720px;min-width:380px;margin:24px;color:#20242c;background:#f5f6f8}label{display:block;margin:14px 0}input{box-sizing:border-box;width:100%;padding:9px}button{padding:9px 14px;margin:4px 4px 4px 0;cursor:pointer}#status{white-space:pre-wrap}small{color:#566}</style></head>
+<body><h2>BOOTH Asset Management Utility BLM連携</h2><p>Unityを開くとBOOTH Asset Management Utilityが受信を自動開始します。Managerの「設定」→「接続設定…」→「Chrome（BOOTH）」→「初期設定」から接続キーをコピーして入力してください。</p>
+<label>接続キー<input id="token" type="password" autocomplete="off"></label><button id="save">保存して接続</button><button id="sync">今すぐBOOTHを確認</button><p id="status"></p>
+<small>ログインはChromeのBOOTHページで行います。パスワードやCookieをこの拡張へ入力する必要はありません。商品はUnity Managerの左一覧、取得ファイルは商品詳細で選択できます。Unityを開いている間に同期します。取得はBLMが行います。BLMを起動しておいてください。Chromeでアプリ起動の確認が出た場合は対応してください。</small>
+<script type="module" src="options.js"></script></body></html>

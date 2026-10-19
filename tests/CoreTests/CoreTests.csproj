@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="UnityStubs.cs" />
+    <Compile Include="RenamingTests.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/BamuMigration.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/BamuPreferences.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="GroupingTests.cs" />
+    <Compile Include="ViewCacheTests.cs" />
+    <Compile Include="PrefabTests.cs" />
+    <Compile Include="ConverterRegistryTests.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/PrefabConverterRegistry.cs" />
+    <Compile Include="ProductListOrderTests.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/ProductListOrder.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/PrefabCatalog.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/PrefabConversionLinks.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/LinkViewCache.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/ScanReportView.cs" />
+    <Compile Include="ScannerTests.cs" />
+    <Compile Include="FolderEditorTests.cs" />
+    <Compile Include="SyncTests.cs" />
+    <Compile Include="CatalogTests.cs" />
+    <Compile Include="ThumbnailTests.cs" />
+    <Compile Include="TagTests.cs" />
+    <Compile Include="NativeReceiverTests.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/BridgeJson.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/NativeBlmFiles.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/UnityBridgeCore.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/UnityBridgeHost.cs" />
+    <Compile Include="TagDictionaryTests.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/TagDictionary.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/ProductTags.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/ThumbnailDiskCache.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/UnifiedCatalog.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/BoothSyncModels.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/Models.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/LinkDisplayGroups.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/LinkFolderEditor.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/BridgeStorage.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/BlmLibrary.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/UnityPackageReader.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/ImportCoordinator.cs" />
+    <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/ExistingAssetScanner.cs" />
+  </ItemGroup>
+</Project>

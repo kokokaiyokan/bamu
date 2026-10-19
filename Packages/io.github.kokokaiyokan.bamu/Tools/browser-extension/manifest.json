@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "BOOTH Asset Management Utility",
+  "version": "0.1.0",
+  "description": "BOOTHの利用可能な商品一覧とVRChat分類をUnity Managerへ連携し、手動の一括取得でBLM未登録商品を取得します。非公式。",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "storage",
+    "alarms",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://accounts.booth.pm/*",
+    "https://booth.pm/*",
+    "http://127.0.0.1:48763/*"
+  ],
+  "background": {
+    "service_worker": "worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "BOOTH Asset Management Utility",
+    "default_popup": "options.html"
+  },
+  "options_page": "options.html"
+}

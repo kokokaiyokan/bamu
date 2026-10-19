@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "io.github.kokokaiyokan.bamu": "file:../../Packages/io.github.kokokaiyokan.bamu",
+    "com.unity.modules.imgui": "1.0.0",
+    "com.unity.modules.jsonserialize": "1.0.0",
+    "com.unity.modules.imageconversion": "1.0.0",
+    "com.unity.modules.unitywebrequest": "1.0.0",
+    "com.unity.modules.unitywebrequesttexture": "1.0.0"
+  }
+}

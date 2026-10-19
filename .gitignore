@@ -1,0 +1,21 @@
+**/Library/
+**/Temp/
+**/Logs/
+**/obj/
+**/bin/
+**/UserSettings/
+validation-project/Assets/Generated/
+validation-project/ProjectSettings/BoothUnityBridge.json*
+artifacts/
+**/__pycache__/
+companion/.state/
+validation-project/*.csproj
+validation-project/*.sln
+
+# Legacy unpacked Chrome extension retained locally during the bamu rename.
+/Packages/pm.booth.unity-bridge/
+validation-project/ProjectSettings/bamu.json*
+
+# Optional machine-local integrations, excluded from Git and public packages.
+/Packages/io.github.kokokaiyokan.bamu/LocalModules/
+/Packages/io.github.kokokaiyokan.bamu/LocalModules.meta
