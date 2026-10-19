@@ -24,6 +24,8 @@ Windows / Unity 2022.3 / BOOTH Library Manager 0.5.0（DBスキーマ20261005）
 
 詳細は[利用ガイド](Packages/io.github.kokokaiyokan.bamu/README.md)を参照してください。
 
+利用前に、[利用上の注意](docs/usage-notes.md)を確認してください。非公式ツールであること、バックアップ、外部サービス・商品の利用条件、通信・保存内容、無保証・責任制限について説明しています。
+
 ## 開発・検証
 
 コアテストには.NET 8とPython 3を使います。Unity・BLMのインストールや購入済みアセットは不要です。毎回、合成のBLMデータベース・商品ファイル・台帳を生成し、`../bamu_development/artifacts/core-test-synthetic-<ID>/`内だけをアプリデータの保存先として使用します。Unity APIはテスト専用の代替実装で、EditorPrefsもメモリ内に保持し、実際のUnityプロジェクトへの切り替えは拒否します。

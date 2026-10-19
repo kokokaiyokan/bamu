@@ -30,7 +30,7 @@ for destination in (package / 'LICENSE', root / 'browser-extension' / 'LICENSE')
     shutil.copyfile(root / 'LICENSE', destination)
 tools = package / 'Tools'
 (package / 'Documentation~').mkdir(exist_ok=True)
-for document in ('booth-sync.md', 'prefab-converter-modules.md'):
+for document in ('booth-sync.md', 'prefab-converter-modules.md', 'usage-notes.md'):
     shutil.copyfile(root / 'docs' / document, package / 'Documentation~' / document)
 (tools / 'browser-extension').mkdir(parents=True, exist_ok=True)
 for source in (root / 'browser-extension').iterdir():

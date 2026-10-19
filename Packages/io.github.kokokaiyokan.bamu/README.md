@@ -6,6 +6,8 @@ BOOTH Library Managerの商品とUnity内のフォルダ・ファイルを結び
 
 ## 導入・起動
 
+利用前に、[利用上の注意](Documentation~/usage-notes.md)を確認してください。BAMUはMITライセンスに基づいて提供し、この注意事項によって追加の利用制限を設けるものではありません。
+
 Package Managerの「Add package from disk...」でこのフォルダの`package.json`を選びます。配布用の`bamu-0.1.0.tgz`は「Add package from tarball...」で導入できます。
 
 `Window > BOOTH Asset Management Utility`を開いてください。VCCプロジェクトでも同じ手順です。VCCのリポジトリ配信は未対応です。
