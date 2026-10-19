@@ -9,9 +9,11 @@ namespace bamu
 {
     public static class BridgeStorage
     {
+        // Core tests inject an isolated user profile before accessing storage.
+        internal static Func<Environment.SpecialFolder, string> UserFolder = Environment.GetFolderPath;
         public static string Root => Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-        internal static string LegacySharedHome => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BoothUnityBridge");
-        internal static string SharedHome => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "bamu");
+        internal static string LegacySharedHome => Path.Combine(UserFolder(Environment.SpecialFolder.LocalApplicationData), "BoothUnityBridge");
+        internal static string SharedHome => Path.Combine(UserFolder(Environment.SpecialFolder.LocalApplicationData), "bamu");
         public static string LedgerPath => BamuMigration.AdoptFile(Path.Combine(Root, "ProjectSettings", "BoothUnityBridge.json"), Path.Combine(Root, "ProjectSettings", "bamu.json"));
         public static string TagsPath => BamuMigration.AdoptFile(Path.Combine(LegacySharedHome, "product-tags.json"), Path.Combine(SharedHome, "product-tags.json"));
         public static string TagDictionaryPath => BamuMigration.AdoptFile(Path.Combine(LegacySharedHome, "tag-dictionary.json"), Path.Combine(SharedHome, "tag-dictionary.json"));
@@ -38,7 +40,7 @@ namespace bamu
             }
             return current;
         }
-        public static string DefaultDatabase => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        public static string DefaultDatabase => Path.Combine(UserFolder(Environment.SpecialFolder.ApplicationData),
             "pm.booth.library-manager", "data.db");
         public static string DatabasePath
         {
@@ -48,7 +50,7 @@ namespace bamu
         public static string BlmExecutable
         {
             get => BamuPreferences.GetString("bamu.BlmExecutable", Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BOOTH Library Manager", "booth_library_manager_client.exe"));
+                UserFolder(Environment.SpecialFolder.LocalApplicationData), "BOOTH Library Manager", "booth_library_manager_client.exe"));
             set => EditorPrefs.SetString("bamu.BlmExecutable", value);
         }
         public static string LibraryOverride

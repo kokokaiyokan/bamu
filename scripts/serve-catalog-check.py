@@ -16,7 +16,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path=='/': body,kind=page,'text/html'
         elif self.path=='/metadata.js': body,kind=(root/'browser-extension/metadata.js').read_bytes(),'text/javascript'
-        elif self.path=='/sample.html': body,kind=(root/'artifacts/research/metadata-4739922.html').read_bytes(),'text/html'
+        elif self.path=='/sample.html': body,kind=(root.parent/'bamu_development/artifacts/research/metadata-4739922.html').read_bytes(),'text/html'
         else: self.send_error(404);return
         self.send_response(200);self.send_header('Content-Type',kind+'; charset=utf-8');self.end_headers();self.wfile.write(body)
 HTTPServer(('127.0.0.1',48765),Handler).serve_forever()

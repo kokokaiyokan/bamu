@@ -7,7 +7,7 @@ internal static class TagTests
 {
     public static void Run(Action<bool, string> check, string root)
     {
-        var folder = Path.Combine(root, "artifacts", "tag-tests", Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(TestEnvironment.RunRoot, "tag-tests", Guid.NewGuid().ToString("N"));
         var path = Path.Combine(folder, "product-tags.json");
         var a = new ProductTags(path);
         a.Add("booth:123", "  ピアス  ");

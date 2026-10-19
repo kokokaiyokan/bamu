@@ -8,7 +8,7 @@ internal static class TagDictionaryTests
 {
     public static void Run(Action<bool, string> check, string root)
     {
-        var folder = Path.Combine(root, "artifacts", "dictionary-tests", Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(TestEnvironment.RunRoot, "dictionary-tests", Guid.NewGuid().ToString("N"));
         var path = Path.Combine(folder, "dictionary.json");
         var dictionary = new TagDictionary(path);
         check(dictionary.Data.mode == "suggest" && dictionary.Data.rules.Count == 7 && !File.Exists(path),
@@ -104,18 +104,19 @@ internal static class TagDictionaryTests
         tags = new ProductTags(legacyPath); tags.SyncAutomatic(status, new TagDictionary(Path.Combine(folder, "preset.json")));
         check(tags.Get("booth:123").Single() == "legacy" && tags.Candidates("booth:123", new TagDictionary(Path.Combine(folder, "preset.json"))).Count == 7,
             "manual-only tag files migrate without losing existing assignments");
-        var samples = Path.Combine(root, "artifacts", "research", "tag-samples.json");
-        if (File.Exists(samples))
+        var samples = Path.Combine(TestEnvironment.Fixtures, "tag-samples.json");
+        if (!File.Exists(samples)) throw new InvalidDataException("Synthetic tag fixture is missing.");
+
         {
-            var expected = new Dictionary<string, string> { { "8616342", "ピアス" }, { "7451985", "髪型" }, { "3626398", "ドレス" }, { "7852794", "メイク" } };
+            var expected = new Dictionary<string, string> { { "101", "ピアス" }, { "102", "髪型" }, { "103", "ドレス" }, { "104", "メイク" } };
             using (var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(samples)))
             {
-                var preset = new TagDictionary(Path.Combine(folder, "real-sample-preset.json"));
+                var preset = new TagDictionary(Path.Combine(folder, "synthetic-sample-preset.json"));
                 foreach (var sample in document.RootElement.EnumerateArray())
                 {
                     var id = sample.GetProperty("id").ToString();
                     var actual = preset.Match(sample.GetProperty("tags").EnumerateArray().Select(t => t.GetProperty("name").GetString()));
-                    check(actual.SequenceEqual(new[] { expected[id] }), "real BOOTH sample " + id + " accepts only its preset category and excludes avatar tags");
+                    check(actual.SequenceEqual(new[] { expected[id] }), "synthetic BOOTH sample " + id + " accepts only its preset category and excludes avatar tags");
                 }
             }
         }

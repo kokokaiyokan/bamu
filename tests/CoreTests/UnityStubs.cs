@@ -9,7 +9,15 @@ using System.Text.Json;
 namespace UnityEngine
 {
     public sealed class GameObject { }
-    public static class Application { public static string dataPath; }
+    public static class Application
+    {
+        private static string currentDataPath;
+        public static string dataPath
+        {
+            get => currentDataPath;
+            set => currentDataPath = TestEnvironment.RequireInsideRun(value);
+        }
+    }
     public static class JsonUtility
     {
         private static readonly JsonSerializerOptions Options = new JsonSerializerOptions

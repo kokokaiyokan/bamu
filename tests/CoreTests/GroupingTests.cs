@@ -13,7 +13,7 @@ internal static class GroupingTests
         method = method, folder = folder, productKey = product, role = LinkRole.Original
     };
 
-    public static void Run(Action<bool, string> check, string referenceLedger)
+    public static void Run(Action<bool, string> check)
     {
         var links = new List<AssetLink>
         {
@@ -68,17 +68,5 @@ internal static class GroupingTests
         groups = LinkDisplayGroups.Build(new[] { moved, copy }, l => l.lastPath);
         check(groups.Count == 2, "different association roles are preserved");
 
-        if (!string.IsNullOrEmpty(referenceLedger))
-        {
-            var ledger = JsonUtility.FromJson<ProjectLedger>(File.ReadAllText(referenceLedger));
-            var target = ledger.links.Where(l => l.productKey == "booth:7229780").ToList();
-            check(target.Count > 0, "TwinkleTulleRibbon reference ledger contains imported links");
-            groups = LinkDisplayGroups.Build(target, l => l.lastPath);
-            check(groups.Count == 2 && groups.Sum(g => g.links.Count) == target.Count &&
-                groups.Any(g => g.path == "Assets/NFD_Item/NFD_TwinkleTulleRibbon") &&
-                groups.Any(g => g.path == "Assets/NFD/_Naffunado_CommonTextures"), "actual TwinkleTulleRibbon import groups into two folders");
-            var project = Directory.GetParent(Path.GetDirectoryName(referenceLedger)).FullName;
-            check(groups.All(g => Directory.Exists(Path.Combine(project, g.path))), "both real reference folders exist for Project selection");
-        }
     }
 }

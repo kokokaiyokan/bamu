@@ -7,7 +7,7 @@ internal static class ThumbnailTests
 {
     public static void Run(Action<bool, string> check, string root)
     {
-        var folder = Path.Combine(root, "artifacts", "thumbnail-tests", Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(TestEnvironment.RunRoot, "thumbnail-tests", Guid.NewGuid().ToString("N"));
         var cache = new ThumbnailDiskCache(folder);
         const string url = "https://booth.pximg.net/test/thumbnail.png";
         var data = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };

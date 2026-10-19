@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="UnityStubs.cs" />
+    <Compile Include="TestEnvironment.cs" />
     <Compile Include="RenamingTests.cs" />
     <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/BamuMigration.cs" />
     <Compile Include="../../Packages/io.github.kokokaiyokan.bamu/Editor/BamuPreferences.cs" />

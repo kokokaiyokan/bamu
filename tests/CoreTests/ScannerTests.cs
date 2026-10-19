@@ -24,7 +24,7 @@ internal static class ScannerTests
     private static ExistingAssetScanReport Scan(Product product, bool copies = false) =>
         ExistingAssetScanner.Scan(new[] { product }, BridgeStorage.Load(), copies);
 
-    public static void Run(string fixtures, Action<bool, string> check, string referenceLedger)
+    public static void Run(string fixtures, Action<bool, string> check)
     {
         // A separate synthetic project keeps the stage-1 test fixtures untouched.
         var previousDataPath = Application.dataPath;
@@ -122,34 +122,8 @@ internal static class ScannerTests
             File.WriteAllText(Path.Combine(directory, secondIndex.packageHash + ".json"), "{bad");
             check(ExistingAssetScanner.ReadIndex(replacement, directory, null, indexReport).entries.Count == 1, "corrupt disposable index is regenerated");
 
-            if (!string.IsNullOrEmpty(referenceLedger)) ValidateLiveReference(referenceLedger, check);
         }
         finally { Application.dataPath = previousDataPath; AssetDatabase.Forget(A); AssetDatabase.Forget(B); AssetDatabase.Forget(Copy); }
     }
 
-    private static void ValidateLiveReference(string path, Action<bool, string> check)
-    {
-        var savedDataPath = Application.dataPath;
-        var cache = Path.Combine(BridgeStorage.Root, "LiveReferenceIndexes");
-        var original = File.ReadAllText(path);
-        var ledger = JsonUtility.FromJson<ProjectLedger>(original);
-        var links = ledger.links.Where(l => l.productKey == "booth:7229780").ToList();
-        foreach (var link in links) AssetDatabase.Register(link.guid, link.lastPath);
-        var project = Directory.GetParent(Path.GetDirectoryName(path)).FullName;
-        try
-        {
-            Application.dataPath = Path.Combine(project, "Assets");
-            var product = BlmLibrary.Load(BridgeStorage.DefaultDatabase).products.Single(p => p.key == "booth:7229780");
-            // Cache writes remain in the synthetic workspace project. Real project is read-only.
-            var report = ExistingAssetScanner.Scan(new[] { product }, ledger, false, null, cache);
-            check(report.errors.Count == 0 && report.candidates.Count == links.Count, "actual TwinkleTulleRibbon files detected from distribution GUIDs");
-            check(report.candidates.All(c => c.alreadyLinked && c.kind == ScanMatchKind.Guid), "live reference scan respects already linked files");
-            check(File.ReadAllText(path) == original, "live reference scan leaves user ledger unchanged");
-        }
-        finally
-        {
-            Application.dataPath = savedDataPath;
-            foreach (var link in links) AssetDatabase.Forget(link.guid);
-        }
-    }
 }

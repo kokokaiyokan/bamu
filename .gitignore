@@ -19,3 +19,23 @@ validation-project/ProjectSettings/bamu.json*
 # Optional machine-local integrations, excluded from Git and public packages.
 /Packages/io.github.kokokaiyokan.bamu/LocalModules/
 /Packages/io.github.kokokaiyokan.bamu/LocalModules.meta
+
+# Local credentials and runtime data.
+.env
+.env.*
+!.env.example
+!.env.sample
+**/connection.json*
+**/state.json*
+**/data.db*
+**/ProjectSettings/bamu.json*
+**/ProjectSettings/BoothUnityBridge.json*
+
+# Local development environments and editor settings.
+**/node_modules/
+**/.venv/
+**/venv/
+**/.vs/
+**/.idea/
+*.user
+*.suo

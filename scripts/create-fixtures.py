@@ -6,9 +6,13 @@ from pathlib import Path
 import sqlite3
 import tarfile
 import zipfile
+import argparse
+import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'artifacts' / 'fixtures'
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output', type=Path, default=ROOT.parent / 'bamu_development' / 'artifacts' / 'fixtures')
+OUT = parser.parse_args().output.resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 GUID_A = 'a' * 32
 GUID_B = 'b' * 32
@@ -63,4 +67,30 @@ with sqlite3.connect(db_path) as db:
       INSERT INTO registered_items VALUES('u1',NULL,1,'2026-10-18');
     ''')
     db.execute('INSERT INTO preferences VALUES(?)', (str(OUT / 'ライブラリ').encode('utf-16-le'),))
+
+product = OUT / 'ライブラリ' / 'b123'
+product.mkdir(parents=True, exist_ok=True)
+shutil.copyfile(OUT / 'two-assets.unitypackage', product / 'sample.unitypackage')
+snapshot = {
+    'products': [
+        {'item_id': '123', 'name': 'Synthetic saved product', 'registered': False},
+        {'item_id': '456', 'name': 'Synthetic remote product', 'registered': False},
+    ],
+    'files': [{'item_id': '456', 'key': '456:1:1'}, {'item_id': '456', 'key': '456:1:2'}],
+}
+(OUT / 'unified-catalog-snapshot.json').write_text(json.dumps(snapshot), encoding='utf-8')
+reference = OUT / 'reference-project' / 'ProjectSettings'
+reference.mkdir(parents=True, exist_ok=True)
+(reference / 'bamu.json').write_text(json.dumps({
+    'schemaVersion': 1,
+    'products': [{'key': 'booth:123', 'boothId': '123', 'name': 'Synthetic product'}],
+    'links': [{'id': 'synthetic-link', 'productKey': 'booth:123', 'guid': GUID_A, 'lastPath': 'Assets/Generated/ItemA.txt'}],
+}), encoding='utf-8')
+samples = [
+    {'id': '101', 'tags': [{'name': 'ピアス'}, {'name': 'SyntheticAvatar対応'}]},
+    {'id': '102', 'tags': [{'name': '髪型'}, {'name': 'VRChat'}]},
+    {'id': '103', 'tags': [{'name': 'ドレス'}, {'name': 'SyntheticAvatar'}]},
+    {'id': '104', 'tags': [{'name': 'メイク'}, {'name': 'SyntheticAvatar用'}]},
+]
+(OUT / 'tag-samples.json').write_text(json.dumps(samples, ensure_ascii=False), encoding='utf-8')
 print(json.dumps({'fixtures': str(OUT), 'package_assets': 2}, ensure_ascii=False))

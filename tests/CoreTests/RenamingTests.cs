@@ -21,9 +21,9 @@ internal static class RenamingTests
         }
     }
 
-    internal static void Run(Action<bool, string> check, string root, string referenceLedger)
+    internal static void Run(Action<bool, string> check, string root, string fixtureLedger)
     {
-        var folder = Path.Combine(root, "artifacts", "rename-test-" + Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(TestEnvironment.RunRoot, "rename-test-" + Guid.NewGuid().ToString("N"));
         var old = Path.Combine(folder, "previous"); var current = Path.Combine(folder, "bamu"); Directory.CreateDirectory(old);
         var source = Path.Combine(old, "state.json"); var target = Path.Combine(current, "state.json");
         File.WriteAllText(source, "{\"preserved\":true}");
@@ -83,12 +83,12 @@ internal static class RenamingTests
             var loaded = BridgeStorage.Load();
             check(Path.GetFileName(BridgeStorage.LedgerPath) == "bamu.json" && loaded.links.Single().id == "link" &&
                 loaded.prefabSelections.Single().guids.Single() == "guid" && loaded.displayFolders.Count == 1, "project ledger migration keeps asset links prefab choices and display rules");
-            if (File.Exists(referenceLedger))
+            if (File.Exists(fixtureLedger))
             {
-                File.Delete(BridgeStorage.LedgerPath); File.Copy(referenceLedger, oldLedger, true);
-                var real = BridgeStorage.Load();
-                check(File.ReadAllBytes(oldLedger).SequenceEqual(File.ReadAllBytes(BridgeStorage.LedgerPath)) && real.links.Count > 0,
-                    "real project ledger copy migrates byte-for-byte in isolated project");
+                File.Delete(BridgeStorage.LedgerPath); File.Copy(fixtureLedger, oldLedger, true);
+                var synthetic = BridgeStorage.Load();
+                check(File.ReadAllBytes(oldLedger).SequenceEqual(File.ReadAllBytes(BridgeStorage.LedgerPath)) && synthetic.links.Count > 0,
+                    "synthetic project ledger copy migrates byte-for-byte in isolated project");
             }
         }
         finally { UnityEngine.Application.dataPath = oldDataPath; }

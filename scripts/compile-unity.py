@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--unity-data', type=Path, default=Path(r'C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data'))
 parser.add_argument('--with-local-modules', action='store_true', help='Also compile optional machine-local modules against the core public API')
 args = parser.parse_args()
-out = root / 'artifacts' / 'compile'
+out = root.parent / 'bamu_development' / 'artifacts' / 'compile'
 out.mkdir(parents=True, exist_ok=True)
 sdk_line = subprocess.check_output(['dotnet', '--list-sdks'], text=True).strip().splitlines()[-1]
 version, location = sdk_line.split(' ', 1)

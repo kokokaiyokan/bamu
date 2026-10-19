@@ -12,8 +12,8 @@ import re
 
 root = Path(__file__).resolve().parents[1]
 package = root / 'Packages' / 'io.github.kokokaiyokan.bamu'
-out = root / 'artifacts'
-out.mkdir(exist_ok=True)
+out = root.parent / 'bamu_development' / 'artifacts'
+out.mkdir(parents=True, exist_ok=True)
 
 # Catch release-version drift before building the bundled extension or archives.
 version = json.loads((package / 'package.json').read_text(encoding='utf-8'))['version']

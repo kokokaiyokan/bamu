@@ -39,19 +39,20 @@ internal static class CatalogTests
         check(!UnifiedCatalog.Hidden(result.Single(p => p.boothId == "456"), remote), "old acquisition-only exclusion does not hide a product");
         check(result.Count == 4 && linked.Count == 2 && local.Count == 2, "hiding leaves catalog BLM and asset link records intact for restoration");
         check(!UnifiedCatalog.Hidden(result[0], null), "visibility handles missing sync snapshots");
-        var snapshot=Path.Combine(root,"artifacts","unified-catalog-snapshot.json");
-        if (File.Exists(snapshot))
+        var snapshot=Path.Combine(TestEnvironment.Fixtures,"unified-catalog-snapshot.json");
+        if (!File.Exists(snapshot)) throw new InvalidDataException("Synthetic catalog fixture is missing.");
+
         {
             var actual=JsonSerializer.Deserialize<SyncStatus>(File.ReadAllText(snapshot),new JsonSerializerOptions {IncludeFields=true});
             var current=BlmLibrary.Load(BridgeStorage.DefaultDatabase).products;
             var merged=UnifiedCatalog.Build(current,new List<ProductReference>(),actual);
             var expected=current.Select(p=>p.key).Union(actual.products.Select(p=>"booth:"+p.item_id)).Count();
-            check(merged.Count==expected,"live unified snapshot produces product cards instead of download-file cards");
-            // The user may download a product after this historical snapshot was captured.
+            check(merged.Count==expected,"synthetic unified snapshot produces product cards instead of download-file cards");
+            // A stale remote snapshot must not override a saved synthetic BLM product.
             var currentIds = new HashSet<string>(current.Select(p => p.boothId));
-            check(actual.products.Where(p=>!p.registered && !currentIds.Contains(p.item_id)).All(p=>string.IsNullOrEmpty(merged.Single(m=>m.boothId==p.item_id).directory)),"live BOOTH-only products remain selectable without a BLM directory");
+            check(actual.products.Where(p=>!p.registered && !currentIds.Contains(p.item_id)).All(p=>string.IsNullOrEmpty(merged.Single(m=>m.boothId==p.item_id).directory)),"synthetic BOOTH-only products remain selectable without a BLM directory");
             check(current.All(p=>merged.Single(m=>m.key==p.key).directory==p.directory),"current BLM registration wins over stale remote snapshots");
-            check(actual.files.GroupBy(f=>f.item_id).Where(g=>g.Count()>1).All(g=>merged.Count(p=>p.boothId==g.Key)==1),"live multi-file and multi-variation assets each occupy one left-menu card");
+            check(actual.files.GroupBy(f=>f.item_id).Where(g=>g.Count()>1).All(g=>merged.Count(p=>p.boothId==g.Key)==1),"synthetic multi-file and multi-variation assets each occupy one left-menu card");
         }
     }
 }

@@ -49,18 +49,27 @@ internal static class Program
         }
         try
         {
-            root = Path.GetFullPath(args[0]); fixtures = Path.Combine(root, "artifacts", "fixtures");
+            if (args.Length > 1) throw new ArgumentException("Usage: CoreTests [repository path]. External project ledgers are not accepted.");
+            root = Path.GetFullPath(args.Length == 1 ? args[0] : Directory.GetCurrentDirectory());
+            TestEnvironment.Initialize(root);
+            fixtures = TestEnvironment.Fixtures;
             // Every invocation gets a fresh isolated project; do not delete existing project data.
-            Application.dataPath = Path.Combine(root, "artifacts", "core-test-" + Guid.NewGuid().ToString("N"), "Assets");
+            Application.dataPath = Path.Combine(TestEnvironment.RunRoot, "project", "Assets");
             Directory.CreateDirectory(Application.dataPath);
-            GroupingTests.Run(Check, args.Length > 1 ? args[1] : "");
-            ScannerTests.Run(fixtures, Check, args.Length > 1 ? args[1] : "");
+            foreach (var path in new[] { BridgeStorage.Root, BridgeStorage.DefaultDatabase, BridgeStorage.SharedHome,
+                BridgeStorage.LegacySharedHome, BridgeStorage.ReceiverHome, BridgeStorage.TagsPath, BridgeStorage.TagDictionaryPath })
+                Check(TestEnvironment.RequireInsideRun(path) == Path.GetFullPath(path), "storage stays inside this test run: " + Path.GetFileName(path));
+            var originalDataPath = Application.dataPath;
+            Reject(() => Application.dataPath = Path.Combine(root, "validation-project", "Assets"), "real Unity project paths are rejected by test stubs");
+            Check(Application.dataPath == originalDataPath, "rejected project path leaves the isolated project active");
+            GroupingTests.Run(Check);
+            ScannerTests.Run(fixtures, Check);
             FolderEditorTests.Run(Check);
             ViewCacheTests.Run(Check);
             PrefabTests.Run(Check);
             ConverterRegistryTests.Run(Check);
             ProductListOrderTests.Run(Check);
-            RenamingTests.Run(Check, root, args.Length > 1 ? args[1] : "");
+            RenamingTests.Run(Check, root, Path.Combine(fixtures, "reference-project", "ProjectSettings", "bamu.json"));
             SyncTests.Run(Check);
             CatalogTests.Run(Check,root);
             ThumbnailTests.Run(Check, root);
@@ -69,12 +78,12 @@ internal static class Program
             NativeReceiverTests.Run(Check, root);
             var before = DbHash();
             var blm = BlmLibrary.Load(BridgeStorage.DefaultDatabase);
-            Check(blm.schema == "20261005" && blm.products.Count > 0, "live BLM read-only adapter");
-            var packages = BlmLibrary.FindPackages(blm.products.First());
-            Check(packages.Count > 0, "live product download directory");
+            Check(blm.schema == "20261005" && blm.products.Count == 2, "synthetic BLM read-only adapter");
+            var packages = BlmLibrary.FindPackages(blm.products.Single(p => p.key == "booth:123"));
+            Check(packages.Count == 1, "synthetic product download directory");
             var entries = UnityPackageReader.Read(packages.First(p => p.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase)));
-            Check(entries.Count > 0, "actual purchased package indexed (" + entries.Count + " paths), no import");
-            Check(before == DbHash(), "BLM database unchanged");
+            Check(entries.Count == 2, "synthetic product package indexed without Unity import");
+            Check(before == DbHash(), "synthetic BLM database unchanged");
             var fixture = BlmLibrary.Load(Path.Combine(fixtures, "fixture.db"));
             Check(fixture.products.Count == 2 && fixture.products.Single(p => p.key == "booth:123").name == "上書き商品名", "overrides and manual products");
             Check(fixture.root.EndsWith("ライブラリ", StringComparison.Ordinal), "UTF-16LE preference path");
@@ -173,10 +182,11 @@ internal static class Program
             Reject(() => BridgeStorage.Load(), "unknown ledger version not overwritten");
             File.WriteAllText(BridgeStorage.LedgerPath, "{broken");
             Reject(() => BridgeStorage.Load(), "corrupt ledger not overwritten");
-            Check(before == DbHash(), "BLM unchanged after all checks");
-            File.WriteAllText(Path.Combine(root, "artifacts", "core-test-result.json"),
+            Check(before == DbHash(), "synthetic BLM unchanged after all checks");
+            File.WriteAllText(Path.Combine(TestEnvironment.RunRoot, "core-test-result.json"),
                 "{\"status\":\"passed\",\"checks\":" + checks + ",\"nativeUnityTested\":false}");
             Console.WriteLine("CORE TESTS PASSED: " + checks + " (Unity APIs simulated; separate real-DLL compilation)");
+            Console.WriteLine("Isolated test output: " + TestEnvironment.RunRoot);
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }

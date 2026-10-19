@@ -10,7 +10,7 @@ using UnityEngine;
 [InitializeOnLoad]
 public static class BridgeValidation
 {
-    private static string FixtureRoot => Path.GetFullPath(Path.Combine(BridgeStorage.Root, "..", "artifacts", "fixtures"));
+    private static string FixtureRoot => Path.GetFullPath(Path.Combine(BridgeStorage.Root, "..", "..", "bamu_development", "artifacts", "fixtures"));
     private const string StageKey = "BoothBridgeValidation.Stage";
     private static double deadline;
     private static int assertions;
@@ -153,7 +153,7 @@ public static class BridgeValidation
                 window.Close();
                 SessionState.SetInt(StageKey, 0);
                 Debug.Log("BRIDGE VALIDATION PASSED");
-                File.WriteAllText(Path.Combine(BridgeStorage.Root, "..", "artifacts", "validation-result.json"), "{\"status\":\"passed\",\"unity\":\"" + Application.unityVersion + "\"}");
+                File.WriteAllText(Path.Combine(BridgeStorage.Root, "..", "..", "bamu_development", "artifacts", "validation-result.json"), "{\"status\":\"passed\",\"unity\":\"" + Application.unityVersion + "\"}");
                 EditorApplication.Exit(0);
             }
         }

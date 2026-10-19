@@ -22,9 +22,9 @@ internal static class NativeReceiverTests
         public readonly BlmLibrary Library;
         public Harness(string root)
         {
-            Home = Path.Combine(root, "artifacts", "native-tests", Guid.NewGuid().ToString("N"));
+            Home = Path.Combine(TestEnvironment.RunRoot, "native-tests", Guid.NewGuid().ToString("N"));
             Product = Path.Combine(Home, "BLM", "b123"); Directory.CreateDirectory(Product);
-            Fixture = Path.Combine(root, "artifacts", "fixtures", "two-assets.unitypackage");
+            Fixture = Path.Combine(TestEnvironment.RunRoot, "fixtures", "two-assets.unitypackage");
             Library = new BlmLibrary { root = Path.GetDirectoryName(Product), schema = "20261005" };
             Restart();
         }
@@ -211,21 +211,27 @@ internal static class NativeReceiverTests
             NativeBlmFiles.Validate(zip64, CancellationToken.None);
             check(true, "native ZIP64 central directories are verified without requiring Python");
         }
-        var legacyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BoothUnityBridge", "state.json");
-        if (System.IO.File.Exists(legacyPath))
+        var legacyPath = Path.Combine(BridgeStorage.LegacySharedHome, "state.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(legacyPath));
+        using (var seed = new Harness(root))
         {
-            var clone = Path.Combine(root, "artifacts", "native-live-migration", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(clone);
+            seed.Catalog(seed.File()); seed.Classify();
+            seed.Core.Command("/v1/bulk-missing", Obj()); seed.Dispatch(); seed.Save();
+            System.IO.File.WriteAllText(legacyPath, Stringify(seed.Core.State));
+        }
+        {
+            var clone = Path.Combine(TestEnvironment.RunRoot, "native-synthetic-migration", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(clone);
             var text = System.IO.File.ReadAllText(legacyPath); var before = Map(Parse(text));
             System.IO.File.WriteAllText(Path.Combine(clone, "state.json"), text);
             using (var cancelled = new CancellationTokenSource())
             {
                 var native = new UnityBridgeCore(clone, () => BlmLibrary.Load(BridgeStorage.DefaultDatabase), cancelled.Token);
                 check(Map(native.State["files"]).Count == Map(before["files"]).Count && List(native.State["revisions"]).Count == List(before["revisions"]).Count,
-                    "native migration preserves real Python catalog and revision counts in an isolated clone");
+                    "native migration preserves synthetic catalog and revision counts in an isolated clone");
                 check(Stringify(native.State["metadata"]) == Stringify(before["metadata"]) && Stringify(native.State["watches"]) == Stringify(before["watches"]),
-                    "native migration preserves real product metadata and file selection settings");
+                    "native migration preserves synthetic product metadata and file selection settings");
                 check(Str(native.Status(), "runtime") == "unity" && Num(native.Status(), "interval_hours") == Num(before, "interval_hours"),
-                    "native migrated API reads the real BLM database without changing polling preferences");
+                    "native migrated API reads the synthetic BLM database without changing polling preferences");
             }
         }
         using (var h = new Harness(root))
