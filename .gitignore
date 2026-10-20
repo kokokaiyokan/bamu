@@ -39,3 +39,8 @@ validation-project/ProjectSettings/bamu.json*
 **/.idea/
 *.user
 *.suo
+
+# Local screenshot demo tooling and documentation.
+/docs/screenshot-demo.md
+/scripts/create-screenshot-demo.py
+/scripts/screenshot-demo/
